@@ -1,61 +1,54 @@
 import streamlit as st
 import pandas as pd
-import joblib
 
-# Load the trained model
-model = joblib.load("best_model.pkl")
+def main():
+    """
+    This function defines the Streamlit application layout and logic.
+    It allows users to upload a CSV file and displays its content.
+    """
+    st.set_page_config(layout="wide") # Use wide layout for better data display
+    st.title("CSV Data Viewer")
+    st.markdown("Upload a CSV file to view its contents and basic information.")
 
-st.set_page_config(page_title="Employee Salary Classification", page_icon="💼", layout="centered")
+    # File uploader widget
+    uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
 
-st.title("💼 Employee Salary Classification App")
-st.markdown("Predict whether an employee earns >50K or ≤50K based on input features.")
+    if uploaded_file is not None:
+        try:
+            # Read the uploaded CSV file into a pandas DataFrame
+            # st.cache_data is used to cache the data loading,
+            # so it doesn't reload every time the app reruns.
+            df = pd.read_csv(uploaded_file)
 
-# Sidebar inputs (these must match your training feature columns)
-st.sidebar.header("Input Employee Details")
+            st.success("CSV file loaded successfully!")
 
-# ✨ Replace these fields with your dataset's actual input columns
-age = st.sidebar.slider("Age", 18, 65, 30)
-education = st.sidebar.selectbox("Education Level", [
-    "Bachelors", "Masters", "PhD", "HS-grad", "Assoc", "Some-college"
-])
-occupation = st.sidebar.selectbox("Job Role", [
-    "Tech-support", "Craft-repair", "Other-service", "Sales",
-    "Exec-managerial", "Prof-specialty", "Handlers-cleaners", "Machine-op-inspct",
-    "Adm-clerical", "Farming-fishing", "Transport-moving", "Priv-house-serv",
-    "Protective-serv", "Armed-Forces"
-])
-hours_per_week = st.sidebar.slider("Hours per week", 1, 80, 40)
-experience = st.sidebar.slider("Years of Experience", 0, 40, 5)
+            # Display the first few rows of the DataFrame
+            st.subheader("Data Preview (First 5 Rows):")
+            st.dataframe(df.head()) # Use st.dataframe for interactive table display
 
-# Build input DataFrame (⚠️ must match preprocessing of your training data)
-input_df = pd.DataFrame({
-    'age': [age],
-    'education': [education],
-    'occupation': [occupation],
-    'hours-per-week': [hours_per_week],
-    'experience': [experience]
-})
+            # Display basic information about the DataFrame
+            st.subheader("DataFrame Information:")
+            # Create a string buffer to capture df.info() output
+            from io import StringIO
+            buffer = StringIO()
+            df.info(buf=buffer)
+            s = buffer.getvalue()
+            st.text(s) # Display the captured info as preformatted text
 
-st.write("### 🔎 Input Data")
-st.write(input_df)
+            # Display descriptive statistics
+            st.subheader("Descriptive Statistics:")
+            st.dataframe(df.describe())
 
-# Predict button
-if st.button("Predict Salary Class"):
-    prediction = model.predict(input_df)
-    st.success(f"✅ Prediction: {prediction[0]}")
+            # Optional: Allow user to view the full DataFrame
+            if st.checkbox("Show full DataFrame"):
+                st.subheader("Full DataFrame:")
+                st.dataframe(df)
 
-# Batch prediction
-st.markdown("---")
-st.markdown("#### 📂 Batch Prediction")
-uploaded_file = st.file_uploader("Upload a CSV file for batch prediction", type="csv")
+        except Exception as e:
+            st.error(f"An error occurred while processing the CSV file: {e}")
+            st.warning("Please ensure the uploaded file is a valid CSV and correctly formatted.")
+    else:
+        st.info("Please upload a CSV file to get started.")
 
-if uploaded_file is not None:
-    batch_data = pd.read_csv(uploaded_file)
-    st.write("Uploaded data preview:", batch_data.head())
-    batch_preds = model.predict(batch_data)
-    batch_data['PredictedClass'] = batch_preds
-    st.write("✅ Predictions:")
-    st.write(batch_data.head())
-    csv = batch_data.to_csv(index=False).encode('utf-8')
-    st.download_button("Download Predictions CSV", csv, file_name='predicted_classes.csv', mime='text/csv')
-
+if __name__ == "__main__":
+    main()
